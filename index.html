@@ -54,7 +54,7 @@
   </div>
 
   <script>
-    // Parse the CSV file
+    // parsing the csv file
     Papa.parse("DiscoveryCenterData_After2018.csv", {
       download: true,
       header: true,
@@ -65,7 +65,7 @@
     });
 
     function createVisualization(data) {
-      // Data preprocessing
+      // data preprocessing
       const processedData = data.map(row => {
         return {
           ...row,
@@ -73,16 +73,16 @@
         };
       });
 
-      // Create year and month fields
+      // creating year and month fields
       processedData.forEach(row => {
         row.year = row["OBSERVATION DATE"].getFullYear();
         row.month = new Date(row["OBSERVATION DATE"]).toLocaleString('default', { month: 'long' });
         row["OBSERVATION COUNT"] = Number(row["OBSERVATION COUNT"]) || 0;
       });
 
-      // Define bird categories mapping
+      // defining bird categories mapping
       const categoryMap = {
-        // Geese, Ducks
+        // For Geese, Ducks
         "Snow Goose": "Geese, Ducks",
         "Canada Goose": "Geese, Ducks",
         "Cackling Goose": "Geese, Ducks",
@@ -328,24 +328,24 @@
         "Dickcissel": "Tanagers, Grosbeaks, Buntings",
       };
 
-      // Apply category mapping
+      // appling category mapping
       processedData.forEach(row => {
         row.Category = categoryMap[row["COMMON NAME"]] || "Other";
       });
 
-      // Filter data for years 2018-2025
+      // filtering data for years 2018-2025 -- making sure
       const filteredData = processedData.filter(row => row.year >= 2018 && row.year <= 2025);
 
-      // Define month order for sorting
+      // defiinge month order for sorting
       const monthOrder = ["January", "February", "March", "April", "May", "June",
                           "July", "August", "September", "October", "November", "December"];
 
-      // Create visualization
+      // creating visualization
       const years = [2018, 2019, 2020, 2021, 2022, 2023, 2024];
       const traces = [];
       const buttons = [];
 
-      // Colors for categories
+      // coloring for categories
       const colors = [
         '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
         '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
@@ -353,12 +353,12 @@
         '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5'
       ];
 
-      // Generate a trace for each year
+      // generating a trace for each year
       years.forEach((year, i) => {
         // Filter data for this year and remove null categories
         const yearData = filteredData.filter(row => row.year === year && row.Category);
         
-        // Group by category, month, and bird name
+        // grouping by category, month, and bird name
         const categoryMonthBirdGroups = {};
         yearData.forEach(row => {
           const key = `${row.Category}-${row.month}-${row["COMMON NAME"]}`;
@@ -373,11 +373,11 @@
           categoryMonthBirdGroups[key].OBSERVATION_COUNT += row["OBSERVATION COUNT"];
         });
         
-        // Convert to array and filter for positive observation counts
+        // converting to array and filter for positive observation counts
         const groupedData = Object.values(categoryMonthBirdGroups)
           .filter(item => item.OBSERVATION_COUNT > 0);
         
-        // Create hover text information
+        // creating hover text information
         const hoverData = {};
         groupedData.forEach(item => {
           const key = `${item.Category}-${item.month}`;
@@ -387,7 +387,7 @@
           hoverData[key].push(`${item.COMMON_NAME} = ${item.OBSERVATION_COUNT}`);
         });
         
-        // Create size data (total count per category and month)
+        // creating size data (total count per category and month)
         const sizeData = {};
         groupedData.forEach(item => {
           const key = `${item.Category}-${item.month}`;
@@ -401,7 +401,7 @@
           sizeData[key].total_count += item.OBSERVATION_COUNT;
         });
         
-        // Merge hover and size data
+        // merging hover and size data
         const finalData = [];
         Object.keys(sizeData).forEach(key => {
           finalData.push({
@@ -410,11 +410,11 @@
           });
         });
         
-        // Calculate max size for scaling
+        // calculating max size for scaling
         const maxCount = Math.max(...finalData.map(item => item.total_count));
         const sizeRef = 2.0 * maxCount / (60.0 * 60.0);
         
-        // Create the trace
+        // creating the trace
         const trace = {
           x: finalData.map(item => item.Category),
           y: finalData.map(item => item.month),
@@ -436,7 +436,7 @@
         
         traces.push(trace);
         
-        // Create button for this year
+        // creating button for this year
         buttons.push({
           label: year.toString(),
           method: "update",
@@ -447,7 +447,7 @@
         });
       });
 
-      // Create the layout
+      // creating the layout
       const layout = {
         title: "Bird Category Observation Summary (2018)",
         updatemenus: [{
@@ -481,10 +481,10 @@
         }
       };
 
-      // Create the plot
+      // creating the plot
       Plotly.newPlot('visualization', traces, layout);
       
-      // Remove loading indicator
+      // removing loading indicator
       document.getElementById('visualization').classList.remove('loading');
     }
   </script>
