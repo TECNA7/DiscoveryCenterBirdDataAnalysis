@@ -1,52 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Discovery Center Bird Observations</title>
-    <!-- Load Plotly first -->
-    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
-    <style>
-        /* Error message styling */
-        #loading, #error {
-            display: none;
-            color: #dc3545;
-            font-weight: bold;
-            text-align: center;
-            margin: 20px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Discovery Center Bird Observations</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 40px; }
+    #timeline { width: 100%; height: 800px; }
+    .plot-container { margin-top: 30px; }
+  </style>
 </head>
 <body>
-    <h1>Discovery Center Bird Observation Trends (2018-2024)</h1>
-    
-    <!-- Status messages -->
-    <div id="loading">Loading visualization...</div>
-    <div id="error"></div>
-    
-    <!-- Graph container -->
-    <div id="plotly-container"></div>
+  <h2>Bird Observation Patterns (2018-2024)</h2>
+  <div id="timeline"></div>
 
-    <script>
-        // Show loading message
-        document.getElementById('loading').style.display = 'block';
-        
-        // Load graph content
-        fetch('plotly_bird_graph.html')
-            .then(response => {
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                return response.text();
-            })
-            .then(html => {
-                const container = document.getElementById('plotly-container');
-                container.innerHTML = html;
-                document.getElementById('loading').style.display = 'none';
-            })
-            .catch(error => {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('error').innerHTML = 
-                    `Error loading visualization: ${error.message}`;
-                console.error('Fetch error:', error);
-            });
-    </script>
+  <script>
+    // Your category mapping from Python converted to JavaScript
+    const categoryMap = {
+      "American Redstart": "Warblers",
+      "American Robin": "Thrushes, Thrashers",
+      "Baltimore Oriole": "Chats, Orioles, Blackbirds",
+      // Add all other bird mappings here
+    };
+
+    d3.csv("./DiscoveryCenterData_After2018.csv").then(function(data) {
+      const grouped = {};
+
+      data.forEach(d => {
+        const date = new Date(d['OBSERVATION DATE']);
+        const month = date.toLocaleString('default', { month: 'long' });
+        const category = categoryMap[d['COMMON NAME']] || "Unknown";
+        const count = +d['OBSERVATION COUNT'];
+
+        if (!grouped[category]) {
+          grouped[category] = {
+            x: [],    // Months
+            y: [],    // Years
+            sizes: [], // Observation counts
+            texts: [], // Hover texts
+            names: []  // Bird names
+          };
+        }
+
+        grouped[category].x.push(month);
+        grouped[category].y.push(date.getFullYear());
+        grouped[category].sizes.push(count * 2); // Scale marker size
+        grouped[category].texts.push(
+          `${d['COMMON NAME']}<br>Count: ${count}<br>${date.toDateString()}`
+        );
+        grouped[category].names.push(d['COMMON NAME']);
+      });
+
+      const traces = Object.keys(grouped).map(category => ({
+        type: 'scatter',
+        mode: 'markers',
+        name: category,
+        x: grouped[category].x,
+        y: grouped[category].y,
+        text: grouped[category].texts,
+        marker: {
+          size: grouped[category].sizes,
+          sizemode: 'area',
+          sizeref: 0.1,
+          opacity: 0.7
+        },
+        hoverinfo: 'text',
+        customdata: grouped[category].names
+      }));
+
+      const layout = {
+        title: 'Bird Observation Patterns by Category',
+        hovermode: 'closest',
+        xaxis: {
+          title: 'Month',
+          categoryorder: 'array',
+          categoryarray: [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+          ]
+        },
+        yaxis: {
+          title: 'Year',
+          tickmode: 'linear',
+          dtick: 1
+        },
+        showlegend: true,
+        height: 800
+      };
+
+      Plotly.newPlot('timeline', traces, layout);
+
+      // Add click interaction
+      document.getElementById('timeline').on('plotly_click', function(data) {
+        const birdName = data.points[0].customdata;
+        alert(`Selected: ${birdName}\nAdd custom interaction here!`);
+      });
+    });
+  </script>
 </body>
 </html>
