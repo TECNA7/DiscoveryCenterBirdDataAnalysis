@@ -1,102 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Discovery Center Bird Observations</title>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body { font-family: Arial; margin: 40px; }
-    #timeline { width: 100%; height: 800px; }
-    .plot-container { margin-top: 30px; }
-  </style>
+    <title>Bird Observation Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 1350px;
+            margin: 0 auto;
+        }
+        .dropdown-container {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #yearSelector {
+            padding: 8px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
-  <h2>Bird Observation Patterns (2018-2024)</h2>
-  <div id="timeline"></div>
+    <div class="container">
+        <h1>Bird Observation Patterns (2018-2024)</h1>
+        
+        <div class="dropdown-container">
+            <select id="yearSelector">
+                <option value="2018">2018</option>
+                <option value="2019">2019</option>
+                <option value="2020">2020</option>
+                <option value="2021">2021</option>
+                <option value="2022">2022</option>
+                <option value="2023">2023</option>
+                <option value="2024">2024</option>
+            </select>
+        </div>
+        
+        <div id="plotlyGraph"></div>
+    </div>
 
-  <script>
-    // Your category mapping from Python converted to JavaScript
-    const categoryMap = {
-      "American Redstart": "Warblers",
-      "American Robin": "Thrushes, Thrashers",
-      "Baltimore Oriole": "Chats, Orioles, Blackbirds",
-      // Add all other bird mappings here
-    };
+    <!-- Include your generated Plotly HTML -->
+    <script>
+        // Initialize with 2018 data
+        let currentYear = '2018';
+        let plotlyGraph = document.getElementById('plotlyGraph');
+        
+        // Load initial graph
+        fetch('plotly_bird_graph.html')
+            .then(response => response.text())
+            .then(html => {
+                plotlyGraph.innerHTML = html;
+                addYearSelectorListener();
+            });
 
-    d3.csv("./DiscoveryCenterData_After2018.csv").then(function(data) {
-      const grouped = {};
-
-      data.forEach(d => {
-        const date = new Date(d['OBSERVATION DATE']);
-        const month = date.toLocaleString('default', { month: 'long' });
-        const category = categoryMap[d['COMMON NAME']] || "Unknown";
-        const count = +d['OBSERVATION COUNT'];
-
-        if (!grouped[category]) {
-          grouped[category] = {
-            x: [],    // Months
-            y: [],    // Years
-            sizes: [], // Observation counts
-            texts: [], // Hover texts
-            names: []  // Bird names
-          };
+        function addYearSelectorListener() {
+            document.getElementById('yearSelector').addEventListener('change', function(e) {
+                const newYear = e.target.value;
+                Plotly.restyle('plotly-graph-div', {
+                    visible: Array.from({length: 7}, (_, i) => i === (newYear - 2018))
+                });
+                document.querySelector('.plotly-graph-div .plotly').layout.title.text = 
+                    `Bird Category Observation Summary (${newYear})`;
+            });
         }
-
-        grouped[category].x.push(month);
-        grouped[category].y.push(date.getFullYear());
-        grouped[category].sizes.push(count * 2); // Scale marker size
-        grouped[category].texts.push(
-          `${d['COMMON NAME']}<br>Count: ${count}<br>${date.toDateString()}`
-        );
-        grouped[category].names.push(d['COMMON NAME']);
-      });
-
-      const traces = Object.keys(grouped).map(category => ({
-        type: 'scatter',
-        mode: 'markers',
-        name: category,
-        x: grouped[category].x,
-        y: grouped[category].y,
-        text: grouped[category].texts,
-        marker: {
-          size: grouped[category].sizes,
-          sizemode: 'area',
-          sizeref: 0.1,
-          opacity: 0.7
-        },
-        hoverinfo: 'text',
-        customdata: grouped[category].names
-      }));
-
-      const layout = {
-        title: 'Bird Observation Patterns by Category',
-        hovermode: 'closest',
-        xaxis: {
-          title: 'Month',
-          categoryorder: 'array',
-          categoryarray: [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ]
-        },
-        yaxis: {
-          title: 'Year',
-          tickmode: 'linear',
-          dtick: 1
-        },
-        showlegend: true,
-        height: 800
-      };
-
-      Plotly.newPlot('timeline', traces, layout);
-
-      // Add click interaction
-      document.getElementById('timeline').on('plotly_click', function(data) {
-        const birdName = data.points[0].customdata;
-        alert(`Selected: ${birdName}\nAdd custom interaction here!`);
-      });
-    });
-  </script>
+    </script>
 </body>
 </html>
