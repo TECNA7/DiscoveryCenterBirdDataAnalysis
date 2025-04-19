@@ -1,84 +1,492 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Bird Observation Dashboard</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            max-width: 1350px;
-            margin: 0 auto;
-        }
-        .dropdown-container {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        #yearSelector {
-            padding: 8px 15px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discovery Center Bird Data Analysis</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    #visualization {
+      width: 100%;
+      height: 800px;
+    }
+    .loading {
+      text-align: center;
+      padding: 50px;
+      font-size: 18px;
+      color: #666;
+    }
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 0.8em;
+      color: #777;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Bird Observation Patterns (2018-2024)</h1>
-        
-        <div class="dropdown-container">
-            <select id="yearSelector">
-                <option value="2018">2018</option>
-                <option value="2019">2019</option>
-                <option value="2020">2020</option>
-                <option value="2021">2021</option>
-                <option value="2022">2022</option>
-                <option value="2023">2023</option>
-                <option value="2024">2024</option>
-            </select>
-        </div>
-        
-        <div id="plotlyGraph"></div>
+  <div class="container">
+    <h1>Discovery Center Bird Observation Data</h1>
+    <div id="visualization" class="loading">Loading visualization...</div>
+    <div class="footer">
+      <p>Data source: Discovery Center Bird Observations (2018-Present)</p>
     </div>
-    <script>
-        // Initialize with first year
-        let currentPlot = null;
+  </div>
 
-        // Load initial graph
-        fetch('plotly_bird_graph.html')
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const plotContent = doc.getElementById('plotly-graph-div');
-                
-                // Clear previous content
-                const container = document.getElementById('plotlyGraph');
-                container.innerHTML = '';
-                container.appendChild(plotContent);
-                
-                // Reattach Plotly to window
-                Plotly.purge(container);
-                Plotly.react(container, plotContent.data, plotContent.layout);
-                
-                // Initialize year selector
-                document.getElementById('yearSelector').addEventListener('change', function(e) {
-                    const yearIndex = parseInt(e.target.value) - 2018;
-                    const visibleStates = new Array(7).fill(false);
-                    visibleStates[yearIndex] = true;
-                    
-                    Plotly.restyle(container, {'visible': visibleStates}, [...Array(7).keys()]);
-                    Plotly.relayout(container, {title: `Bird Category Observation Summary (${e.target.value})`});
-                });
-            })
-            .catch(error => console.error('Error loading graph:', error));
-    </script>
+  <script>
+    // Parse the CSV file
+    Papa.parse("DiscoveryCenterData_After2018.csv", {
+      download: true,
+      header: true,
+      dynamicTyping: true,
+      complete: function(results) {
+        createVisualization(results.data);
+      }
+    });
+
+    function createVisualization(data) {
+      // Data preprocessing
+      const processedData = data.map(row => {
+        return {
+          ...row,
+          "OBSERVATION DATE": new Date(row["OBSERVATION DATE"])
+        };
+      });
+
+      // Create year and month fields
+      processedData.forEach(row => {
+        row.year = row["OBSERVATION DATE"].getFullYear();
+        row.month = new Date(row["OBSERVATION DATE"]).toLocaleString('default', { month: 'long' });
+        row["OBSERVATION COUNT"] = Number(row["OBSERVATION COUNT"]) || 0;
+      });
+
+      // Define bird categories mapping
+      const categoryMap = {
+        // Geese, Ducks
+        "Snow Goose": "Geese, Ducks",
+        "Canada Goose": "Geese, Ducks",
+        "Cackling Goose": "Geese, Ducks",
+        "Wood Duck": "Geese, Ducks",
+        "Northern Shoveler": "Geese, Ducks",
+        "Gadwall": "Geese, Ducks",
+        "American Wigeon": "Geese, Ducks",
+        "Mallard": "Geese, Ducks",
+        "American Black Duck": "Geese, Ducks",
+        "Canvasback": "Geese, Ducks",
+        "Redhead": "Geese, Ducks",
+        "Ring-necked Duck": "Geese, Ducks",
+        "Greater Scaup": "Geese, Ducks",
+        "Lesser Scaup": "Geese, Ducks",
+        "Long-tailed Duck": "Geese, Ducks",
+        "Bufflehead": "Geese, Ducks",
+        "Common Goldeneye": "Geese, Ducks",
+        "Hooded Merganser": "Geese, Ducks",
+        "Common Merganser": "Geese, Ducks",
+        "Red-breasted Merganser": "Geese, Ducks",
+        "Ruddy Duck": "Geese, Ducks",
+
+        // For Grebes
+        "Pied-billed Grebe": "Grebes",
+        "Horned Grebe": "Grebes",
+        "Red-necked Grebe": "Grebes",
+
+        // For Doves, Cuckoos
+        "Rock Pigeon": "Doves, Cuckoos",
+        "Mourning Dove": "Doves, Cuckoos",
+        "Yellow-billed Cuckoo": "Doves, Cuckoos",
+        "Black-billed Cuckoo": "Doves, Cuckoos",
+
+        // For Nightjars, Swifts, Hummingbirds
+        "Common Nighthawk": "Nightjars, Swifts, Hummingbirds",
+        "Eastern Whip-poor-will": "Nightjars, Swifts, Hummingbirds",
+        "Chimney Swift": "Nightjars, Swifts, Hummingbirds",
+        "Ruby-throated Hummingbird": "Nightjars, Swifts, Hummingbirds",
+
+        // For Rails, Gallinules, Coots
+        "King Rail": "Rails, Gallinules, Coots",
+        "Virginia Rail": "Rails, Gallinules, Coots",
+        "Sora": "Rails, Gallinules, Coots",
+        "Common Gallinule": "Rails, Gallinules, Coots",
+        "American Coot": "Rails, Gallinules, Coots",
+
+        // For Plovers, Sandpipers
+        "Killdeer": "Plovers, Sandpipers",
+        "American Woodcock": "Plovers, Sandpipers",
+
+        // For Gulls
+        "Laughing Gull": "Gulls",
+        "Ring-billed Gull": "Gulls",
+        "Herring Gull": "Gulls",
+        "Great Black-backed Gull": "Gulls",
+
+        // For Loons
+        "Red-throated Loon": "Loons",
+        "Common Loon": "Loons",
+
+        // For Cormorants
+        "Double-crested Cormorant": "Cormorants",
+
+        // For Herons
+        "Great Blue Heron": "Herons",
+        "Green Heron": "Herons",
+        "Black-crowned Night-Heron": "Herons",
+
+        // For Vultures, Hawks
+        "Black Vulture": "Vultures, Hawks",
+        "Turkey Vulture": "Vultures, Hawks",
+        "Osprey": "Vultures, Hawks",
+        "Northern Harrier": "Vultures, Hawks",
+        "Sharp-shinned Hawk": "Vultures, Hawks",
+        "Cooper's Hawk": "Vultures, Hawks",
+        "Northern Goshawk": "Vultures, Hawks",
+        "Bald Eagle": "Vultures, Hawks",
+        "Red-shouldered Hawk": "Vultures, Hawks",
+        "Broad-winged Hawk": "Vultures, Hawks",
+        "Red-tailed Hawk": "Vultures, Hawks",
+
+        // For Owls, Kingfishers
+        "Eastern Screech-owl": "Owls, KingFishers",
+        "Great Horned owl": "Owls, KingFishers",
+        "Long-eared owl": "Owls, KingFishers",
+        "Northern Saw-whet owl": "Owls, KingFishers",
+        "Belted Kingfisher": "Owls, KingFishers",
+
+        // For Woodpeckers
+        "Red-headed Woodpecker": "Woodpeckers",
+        "Red-bellied Woodpecker": "Woodpeckers",
+        "Yellow-bellied Sapsucker": "Woodpeckers",
+        "Downy Woodpecker": "Woodpeckers",
+        "Hairy Woodpecker": "Woodpeckers",
+        "Northern Flicker": "Woodpeckers",
+
+        // For Falcons
+        "American Kestrel": "Falcons",
+        "Merlin": "Falcons",
+        "Peregrine Falcon": "Falcons",
+
+        // For Flycatchers
+        "Great Crested Flycatcher": "Flycatchers",
+        "Easter Kingbird": "Flycatchers",
+        "Olive-sided Flycatcher": "Flycatchers",
+        "Eastern Wood-Pewee": "Flycatchers",
+        "Yellow-bellied Flycatcher": "Flycatchers",
+        "Acadian Flycatcher": "Flycatchers",
+        "Alder Flycatcher": "Flycatchers",
+        "Willow Flycatcher": "Flycatchers",
+        "Least Flycatcher": "Flycatchers",
+        "Easter Phoebe": "Flycatchers",
+
+        // For Vireos
+        "White-eyed Vireo": "Vireos",
+        "Yellow-throated Vireo": "Vireos",
+        "Blue-headed Vireo": "Vireos",
+        "Philadelphia Vireo": "Vireos",
+        "Warbling Vireo": "Vireos",
+        "Red-eyed Vireo": "Vireos",
+
+        // For Jays, Crows
+        "Blue Jay": "Jays, Crows",
+        "American Crow": "Jays, Crows",
+        "Fish Crow": "Jays, Crows",
+        "Common Raven": "Jays, Crows",
+
+        // For Swallows
+        "Bank Swallow": "Swallows",
+        "Tree Swallow": "Swallows",
+        "Northern Rough-winged Swallow": "Swallows",
+        "Purple Martin": "Swallows",
+        "Barn Swallow": "Swallows",
+        "Cliff Swallow": "Swallows",
+
+        // For Chickadees, Nuthatches, Creepers
+        "Carolina Chickadee": "Chickadees, Nuthatches, Creepers",
+        "Black-capped Chickadee": "Chickadees, Nuthatches, Creepers",
+        "Tufted Titmouse": "Chickadees, Nuthatches, Creepers",
+        "Red-breasted Nuthatch": "Chickadees, Nuthatches, Creepers",
+        "White-breasted Nuthatch": "Chickadees, Nuthatches, Creepers",
+        "Brown Creeper": "Chickadees, Nuthatches, Creepers",
+
+        // For Wrens, Gnatcatchers, Kinglets
+        "House Wren": "Wrens, Gnatcatchers, Kinglets",
+        "Winter Wren": "Wrens, Gnatcatchers, Kinglets",
+        "Marsh Wren": "Wrens, Gnatcatchers, Kinglets",
+        "Carolina Wren": "Wrens, Gnatcatchers, Kinglets",
+        "Blue-gray Gnatcatcher": "Wrens, Gnatcatchers, Kinglets",
+        "Golden-crowned Kinglet": "Wrens, Gnatcatchers, Kinglets",
+        "Ruby-crowned Kinglet": "Wrens, Gnatcatchers, Kinglets",
+
+        // For Thrushes, Thrashers
+        "Eastern Bluebird": "Thrushes, Thrashers",
+        "Veery": "Thrushes, Thrashers",
+        "Gray-cheeked Thrush": "Thrushes, Thrashers",
+        "Swainson's Thrush": "Thrushes, Thrashers",
+        "Hermit Thrush": "Thrushes, Thrashers",
+        "Wood Thrush": "Thrushes, Thrashers",
+        "American Robin": "Thrushes, Thrashers",
+        "Gray Catbird": "Thrushes, Thrashers",
+        "Brown Thrasher": "Thrushes, Thrashers",
+        "Northern Mockingbird": "Thrushes, Thrashers",
+
+        // For Starlings, Waxwings, House Sparrow
+        "European Starling": "Starlings, Waxwings, House Sparrow",
+        "Cedar Waxwing": "Starlings, Waxwings, House Sparrow",
+        "House Sparrow": "Starlings, Waxwings, House Sparrow",
+
+        // For Finches
+        "Evening Grosbeak": "Finches",
+        "House Finch": "Finches",
+        "Purple Finch": "Finches",
+        "Common Redpoll": "Finches",
+        "Pine Siskin": "Finches",
+        "American Goldfinch": "Finches",
+
+        // For Sparrows
+        "Chipping Sparrow": "Sparrows",
+        "Field Sparrow": "Sparrows",
+        "Fox Sparrow": "Sparrows",
+        "American Tree Sparrow": "Sparrows",
+        "Dark-eyed Junco": "Sparrows",
+        "White-crowned Sparrow": "Sparrows",
+        "White-throated Sparrow": "Sparrows",
+        "Song Sparrow": "Sparrows",
+        "Lincoln's Sparrow": "Sparrows",
+        "Swamp Sparrow": "Sparrows",
+        "Eastern Towhee": "Sparrows",
+
+        // For Chats, Orioles, Blackbirds
+        "Yellow-breasted Chat": "Chats, Orioles, Blackbirds",
+        "Bobolink": "Chats, Orioles, Blackbirds",
+        "Orchard Oriole": "Chats, Orioles, Blackbirds",
+        "Baltimore Oriole": "Chats, Orioles, Blackbirds",
+        "Red-winged Blackbird": "Chats, Orioles, Blackbirds",
+        "Brown-headed Cowbird": "Chats, Orioles, Blackbirds",
+        "Rusty Blackbird": "Chats, Orioles, Blackbirds",
+        "Common Grackie": "Chats, Orioles, Blackbirds",
+
+        // For Warblers
+        "Ovenbird": "Warblers",
+        "Worm-eating Warbler": "Warblers",
+        "Louisiana Waterthrush": "Warblers",
+        "Northern Waterthrush": "Warblers",
+        "Golden-winged Warbler": "Warblers",
+        "Blue-winged Warbler": "Warblers",
+        "Black-and-white Warbler": "Warblers",
+        "Prothonotary Warbler": "Warblers",
+        "Tennessee Warbler": "Warblers",
+        "Orange-crowned Warbler": "Warblers",
+        "Nashville Warbler": "Warblers",
+        "Connecticut Warbler": "Warblers",
+        "Mourning Warbler": "Warblers",
+        "Kentucky Warbler": "Warblers",
+        "Common Yellowthroat": "Warblers",
+        "Hooded Warbler": "Warblers",
+        "American Redstart": "Warblers",
+        "Cape May Warbler": "Warblers",
+        "Cerulean Warbler": "Warblers",
+        "Northern Parula": "Warblers",
+        "Magnolia Warbler": "Warblers",
+        "Bay-breasted Warbler": "Warblers",
+        "Blackburnian Warbler": "Warblers",
+        "Yellow Warbler": "Warblers",
+        "Black-throated Blue Warbler": "Warblers",
+        "Palm Warbler": "Warblers",
+        "Pine Warbler": "Warblers",
+        "Yellow-rumped Warbler": "Warblers",
+        "Yellow-throated Warbler": "Warblers",
+        "Prairie Warbler": "Warblers",
+        "Black-throated Green Warbler": "Warblers",
+        "Canada Warbler": "Warblers",
+        "Wilson's Warbler": "Warblers",
+
+        // For Tanagers, Grosbeaks, Buntings
+        "Summer Tanager": "Tanagers, Grosbeaks, Buntings",
+        "Scarlet Tanager": "Tanagers, Grosbeaks, Buntings",
+        "Northern Cardinal": "Tanagers, Grosbeaks, Buntings",
+        "Rose-breasted Grosbeak": "Tanagers, Grosbeaks, Buntings",
+        "Blue Grosbeak": "Tanagers, Grosbeaks, Buntings",
+        "Indigo Bunting": "Tanagers, Grosbeaks, Buntings",
+        "Dickcissel": "Tanagers, Grosbeaks, Buntings",
+      };
+
+      // Apply category mapping
+      processedData.forEach(row => {
+        row.Category = categoryMap[row["COMMON NAME"]] || "Other";
+      });
+
+      // Filter data for years 2018-2025
+      const filteredData = processedData.filter(row => row.year >= 2018 && row.year <= 2025);
+
+      // Define month order for sorting
+      const monthOrder = ["January", "February", "March", "April", "May", "June",
+                          "July", "August", "September", "October", "November", "December"];
+
+      // Create visualization
+      const years = [2018, 2019, 2020, 2021, 2022, 2023, 2024];
+      const traces = [];
+      const buttons = [];
+
+      // Colors for categories
+      const colors = [
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+        '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5',
+        '#c49c94', '#f7b6d2', '#c7c7c7', '#dbdb8d', '#9edae5'
+      ];
+
+      // Generate a trace for each year
+      years.forEach((year, i) => {
+        // Filter data for this year and remove null categories
+        const yearData = filteredData.filter(row => row.year === year && row.Category);
+        
+        // Group by category, month, and bird name
+        const categoryMonthBirdGroups = {};
+        yearData.forEach(row => {
+          const key = `${row.Category}-${row.month}-${row["COMMON NAME"]}`;
+          if (!categoryMonthBirdGroups[key]) {
+            categoryMonthBirdGroups[key] = {
+              Category: row.Category,
+              month: row.month,
+              COMMON_NAME: row["COMMON NAME"],
+              OBSERVATION_COUNT: 0
+            };
+          }
+          categoryMonthBirdGroups[key].OBSERVATION_COUNT += row["OBSERVATION COUNT"];
+        });
+        
+        // Convert to array and filter for positive observation counts
+        const groupedData = Object.values(categoryMonthBirdGroups)
+          .filter(item => item.OBSERVATION_COUNT > 0);
+        
+        // Create hover text information
+        const hoverData = {};
+        groupedData.forEach(item => {
+          const key = `${item.Category}-${item.month}`;
+          if (!hoverData[key]) {
+            hoverData[key] = [];
+          }
+          hoverData[key].push(`${item.COMMON_NAME} = ${item.OBSERVATION_COUNT}`);
+        });
+        
+        // Create size data (total count per category and month)
+        const sizeData = {};
+        groupedData.forEach(item => {
+          const key = `${item.Category}-${item.month}`;
+          if (!sizeData[key]) {
+            sizeData[key] = {
+              Category: item.Category,
+              month: item.month,
+              total_count: 0
+            };
+          }
+          sizeData[key].total_count += item.OBSERVATION_COUNT;
+        });
+        
+        // Merge hover and size data
+        const finalData = [];
+        Object.keys(sizeData).forEach(key => {
+          finalData.push({
+            ...sizeData[key],
+            hover_text: (hoverData[key] || []).join('<br>')
+          });
+        });
+        
+        // Calculate max size for scaling
+        const maxCount = Math.max(...finalData.map(item => item.total_count));
+        const sizeRef = 2.0 * maxCount / (60.0 * 60.0);
+        
+        // Create the trace
+        const trace = {
+          x: finalData.map(item => item.Category),
+          y: finalData.map(item => item.month),
+          mode: 'markers',
+          marker: {
+            size: finalData.map(item => item.total_count),
+            sizemode: 'area',
+            sizeref: sizeRef,
+            sizemin: 4,
+            color: finalData.map((_, idx) => colors[idx % colors.length]),
+            line: { width: 1, color: 'black' },
+            opacity: 0.7
+          },
+          customdata: finalData.map(item => [item.hover_text]),
+          hovertemplate: "<b>%{customdata[0]}</b><extra></extra>",
+          name: year.toString(),
+          visible: i === 0 ? true : false
+        };
+        
+        traces.push(trace);
+        
+        // Create button for this year
+        buttons.push({
+          label: year.toString(),
+          method: "update",
+          args: [
+            { visible: years.map((_, j) => j === i) },
+            { title: `Bird Category Observation Summary (${year})` }
+          ]
+        });
+      });
+
+      // Create the layout
+      const layout = {
+        title: "Bird Category Observation Summary (2018)",
+        updatemenus: [{
+          active: 0,
+          buttons: buttons,
+          direction: "down",
+          showactive: true,
+          x: 1.1,
+          xanchor: "left",
+          y: 1.15,
+          yanchor: "top"
+        }],
+        xaxis: {
+          title: "Bird Category",
+          automargin: true
+        },
+        yaxis: {
+          title: "Month",
+          categoryorder: 'array',
+          categoryarray: monthOrder,
+          automargin: true
+        },
+        height: 800,
+        width: 1300,
+        showlegend: false,
+        margin: {
+          l: 150,
+          r: 50,
+          b: 100,
+          t: 100,
+        }
+      };
+
+      // Create the plot
+      Plotly.newPlot('visualization', traces, layout);
+      
+      // Remove loading indicator
+      document.getElementById('visualization').classList.remove('loading');
+    }
+  </script>
 </body>
 </html>
