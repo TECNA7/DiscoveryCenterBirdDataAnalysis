@@ -1,1 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bird Observation Timeline</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { font-family: Arial; margin: 40px; }
+    #timeline { width: 100%; height: 600px; }
+  </style>
+</head>
+<body>
+  <h2>Bird Observations at Discovery Center (After 2018)</h2>
+  <div id="timeline"></div>
+
+  <script>
+    d3.csv("./DiscoveryCenterData_After2018.csv").then(function(data) {
+      const grouped = {};
+
+      data.forEach(d => {
+        const parseDate = d3.timeParse("%Y-%m-%d");
+        const dateObj = parseDate(d.observation_date.trim());
+        const date = dateObj ? dateObj.toISOString().split("T")[0] : null;
+        if (!date) return;
+
+        const group = d.bird_type || d.group || "Unknown Group";
+        const species = d.species_name || "Unknown Species";
+        const url = d.source_url || "";
+
+        if (!grouped[group]) grouped[group] = { x: [], y: [], text: [], customdata: [] };
+        grouped[group].x.push(date);
+        grouped[group].y.push(group);
+        grouped[group].text.push(species);
+        grouped[group].customdata.push(url);
+      });
+
+      const traces = Object.keys(grouped).map(group => ({
+        type: 'scatter',
+        mode: 'markers',
+        name: group,
+        x: grouped[group].x,
+        y: grouped[group].y,
+        text: grouped[group].text,
+        customdata: grouped[group].customdata,
+        marker: { size: 10 }
+      }));
+
+      const annotations = Object.entries(grouped).map(([group, groupData]) => {
+        const dates = groupData.x.map(d => new Date(d));
+        const maxDate = new Date(Math.max(...dates));
+        const count = groupData.x.length;
+
+        return {
+          x: maxDate.toISOString().split("T")[0],
+          y: group,
+          text: `🕊️ ${count} sightings`,
+          showarrow: true,
+          arrowhead: 4,
+          ax: 40,
+          ay: -20,
+          font: { size: 12, color: 'black' },
+          bgcolor: 'rgba(255,255,255,0.7)',
+          bordercolor: 'gray',
+          borderwidth: 1
+        };
+      });
+
+      const layout = {
+        title: 'Bird Sightings Over Time',
+        hovermode: 'closest',
+        xaxis: { title: 'Date', type: 'date', autorange: true },
+        yaxis: { title: 'Bird Type / Group', automargin: true },
+        annotations: annotations
+      };
+
+      Plotly.newPlot('timeline', traces, layout);
+
+      const plotDiv = document.getElementById('timeline');
+      plotDiv.on('plotly_click', function(data){
+        const url = data.points[0].customdata;
+        if (url) window.open(url, '_blank');
+      });
+    });
+  </script>
+</body>
+</html>
 
