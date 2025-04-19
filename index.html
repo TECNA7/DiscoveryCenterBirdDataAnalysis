@@ -47,31 +47,38 @@
         
         <div id="plotlyGraph"></div>
     </div>
-
-    <!-- Include your generated Plotly HTML -->
     <script>
-        // Initialize with 2018 data
-        let currentYear = '2018';
-        let plotlyGraph = document.getElementById('plotlyGraph');
-        
+        // Initialize with first year
+        let currentPlot = null;
+
         // Load initial graph
         fetch('plotly_bird_graph.html')
             .then(response => response.text())
             .then(html => {
-                plotlyGraph.innerHTML = html;
-                addYearSelectorListener();
-            });
-
-        function addYearSelectorListener() {
-            document.getElementById('yearSelector').addEventListener('change', function(e) {
-                const newYear = e.target.value;
-                Plotly.restyle('plotly-graph-div', {
-                    visible: Array.from({length: 7}, (_, i) => i === (newYear - 2018))
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const plotContent = doc.getElementById('plotly-graph-div');
+                
+                // Clear previous content
+                const container = document.getElementById('plotlyGraph');
+                container.innerHTML = '';
+                container.appendChild(plotContent);
+                
+                // Reattach Plotly to window
+                Plotly.purge(container);
+                Plotly.react(container, plotContent.data, plotContent.layout);
+                
+                // Initialize year selector
+                document.getElementById('yearSelector').addEventListener('change', function(e) {
+                    const yearIndex = parseInt(e.target.value) - 2018;
+                    const visibleStates = new Array(7).fill(false);
+                    visibleStates[yearIndex] = true;
+                    
+                    Plotly.restyle(container, {'visible': visibleStates}, [...Array(7).keys()]);
+                    Plotly.relayout(container, {title: `Bird Category Observation Summary (${e.target.value})`});
                 });
-                document.querySelector('.plotly-graph-div .plotly').layout.title.text = 
-                    `Bird Category Observation Summary (${newYear})`;
-            });
-        }
+            })
+            .catch(error => console.error('Error loading graph:', error));
     </script>
 </body>
 </html>
