@@ -36,16 +36,31 @@
     </div>
 
     <script>
-        // Load the Plotly graph
-        fetch('plotly_bird_graph.html')
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const plotlyContent = doc.querySelector('.plotly-graph-div');
-                document.getElementById('plotly-graph').appendChild(plotlyContent);
-            })
-            .catch(error => console.error('Error loading Plotly graph:', error));
+        // Load the Plotly graph after page loads
+        window.addEventListener('DOMContentLoaded', (event) => {
+            // 1. Create a container for the graph
+            const container = document.getElementById('plotly-graph');
+            
+            // 2. Fetch the Plotly HTML file
+            fetch('plotly_bird_graph.html')
+                .then(response => response.text())
+                .then(html => {
+                    // 3. Parse the Plotly HTML content
+                    const parser = new DOMParser();
+                    const plotlyDocument = parser.parseFromString(html, 'text/html');
+                    
+                    // 4. Extract the Plotly graph element
+                    const plotlyElement = plotlyDocument.querySelector('.plotly-graph-div');
+                    
+                    // 5. Inject into your page
+                    container.appendChild(plotlyElement);
+                })
+                .catch(error => {
+                    console.error('Error loading graph:', error);
+                    container.innerHTML = '<p>Error loading visualization. Please try again later.</p>';
+                });
+        });
+
     </script>
 </body>
 </html>
